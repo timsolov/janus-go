@@ -3,11 +3,9 @@
 package janus
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -122,43 +120,22 @@ func (gateway *Gateway) recv() {
 
 	for {
 		// Read message from Gateway
-
-		// Decode to Msg struct
-		var base BaseMsg
-
 		_, data, err := gateway.conn.ReadMessage()
 		if err != nil {
 			fmt.Printf("conn.Read: %s\n", err)
 			return
 		}
 
-		if err := json.Unmarshal(data, &base); err != nil {
-			fmt.Printf("json.Unmarshal: %s\n", err)
+		// parse message
+		msg, err := ParseMessage(data)
+		if err != nil {
+			fmt.Printf("parse error: %s\n", err)
 			continue
 		}
-
-		if debug {
-			// log message being sent
-			var log bytes.Buffer
-			json.Indent(&log, data, ">", "   ")
-			log.Write([]byte("\n"))
-			log.WriteTo(os.Stdout)
-		}
-
-		typeFunc, ok := msgtypes[base.Type]
-		if !ok {
-			fmt.Printf("Unknown message type received!\n")
-			continue
-		}
-
-		msg := typeFunc()
-		if err := json.Unmarshal(data, &msg); err != nil {
-			fmt.Printf("json.Unmarshal: %s\n", err)
-			continue // Decode error
-		}
+		base := msg.(BaseMsg)
 
 		// Pass message on from here
-		if base.Id == "" {
+		if base.PluginData.Plugin != "" {
 			// Is this a Handle event?
 			if base.Handle == 0 {
 				// Error()
