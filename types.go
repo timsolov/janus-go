@@ -140,7 +140,7 @@ type BaseEvent struct {
 	Emitter   string
 	Type      int
 	Subtype   int
-	Timestamp int
+	Timestamp int64
 	Session   uint64 `json:"session_id"`
 	Handle    uint64 `json:"handle_id"`
 	OpaqueID  string `json:"opaque_id"`
@@ -266,7 +266,7 @@ func (dt *DateTime) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
-func (dt *DateTime) MarshalJSON() ([]byte, error) {
+func (dt DateTime) MarshalJSON() ([]byte, error) {
 	if dt.Time.UnixNano() == nilTime {
 		return []byte("null"), nil
 	}
