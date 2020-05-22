@@ -134,6 +134,49 @@ type HangupMsg struct {
 	Handle  uint64 `json:"sender"`
 }
 
+// Admin / Monitor API types
+
+type BaseAMResponse struct {
+	Type string `json:"janus"`
+	Id   string `json:"transaction"`
+}
+
+type ErrorAMResponse struct {
+	BaseAMResponse
+	Err ErrorData `json:"error"`
+}
+
+func (err *ErrorAMResponse) Error() string {
+	return err.Err.Reason
+}
+
+type SuccessAMResponse struct {
+	BaseAMResponse
+	Data map[string]interface{} `json:"data"`
+}
+
+type ListSessionsAMResponse struct {
+	BaseAMResponse
+	Sessions []int `json:"sessions"`
+}
+
+type StoredToken struct {
+	Token   string   `json:"token"`
+	Plugins []string `json:"allowed_plugins"`
+}
+
+type ListTokensResponse struct {
+	BaseAMResponse
+	Data map[string][]*StoredToken `json:"data"`
+}
+
+var amResponseTypes = map[string]func() interface{}{
+	"error":         func() interface{} { return &ErrorAMResponse{} },
+	"success":       func() interface{} { return &SuccessAMResponse{} },
+	"list_sessions": func() interface{} { return &ListSessionsAMResponse{} },
+	"list_tokens":   func() interface{} { return &ListTokensResponse{} },
+}
+
 // Event handler types
 
 type BaseEvent struct {
@@ -296,6 +339,34 @@ func ParseMessage(data []byte) (interface{}, error) {
 	}
 
 	return msg, nil
+}
+
+func ParseAMResponse(request string, data []byte) (interface{}, error) {
+	var base BaseAMResponse
+	if err := json.Unmarshal(data, &base); err != nil {
+		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+	}
+
+	typeStr := base.Type
+	if typeStr == "success" {
+		typeStr = request
+	}
+
+	typeFunc, ok := amResponseTypes[typeStr]
+	if !ok {
+		if base.Type == "success" {
+			typeFunc = amResponseTypes["success"]
+		} else {
+			return nil, fmt.Errorf("unknown admin / monitor API type received: %s", typeStr)
+		}
+	}
+
+	resp := typeFunc()
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("json.Unmarshal %s : %w", typeStr, err)
+	}
+
+	return resp, nil
 }
 
 func ParseEvent(data []byte) (interface{}, error) {
