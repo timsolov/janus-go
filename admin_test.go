@@ -78,7 +78,7 @@ func TestAdminTokens(t *testing.T) {
 
 }
 
-func findToken(t *testing.T, api *AdminAPI, token string) *StoredToken {
+func findToken(t *testing.T, api AdminAPI, token string) *StoredToken {
 	resp, err := api.ListTokens()
 	if err != nil {
 		t.Error(err)

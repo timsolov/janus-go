@@ -125,13 +125,22 @@ func (t *HttpTransport) Request(r APIRequest) (interface{}, error) {
 	}
 }
 
-type AdminAPI struct {
+type AdminAPI interface {
+	ListSessions() (interface{}, error)
+	AddToken(token string, plugins []string) (interface{}, error)
+	AllowToken(token string, plugins []string) (interface{}, error)
+	DisallowToken(token string, plugins []string) (interface{}, error)
+	RemoveToken(token string) (interface{}, error)
+	ListTokens() (interface{}, error)
+}
+
+type AdminAPIImpl struct {
 	transport Transport
 	secret    string
 }
 
-func NewAdminAPI(url, secret string) (*AdminAPI, error) {
-	api := new(AdminAPI)
+func NewAdminAPI(url, secret string) (*AdminAPIImpl, error) {
+	api := new(AdminAPIImpl)
 	api.secret = secret
 
 	if strings.HasPrefix(url, "http") {
@@ -143,7 +152,7 @@ func NewAdminAPI(url, secret string) (*AdminAPI, error) {
 	return api, nil
 }
 
-func (api *AdminAPI) BaseRequest(action string) *BaseRequest {
+func (api *AdminAPIImpl) BaseRequest(action string) *BaseRequest {
 	return &BaseRequest{
 		Action:      action,
 		Transaction: RandStringBytesMaskImprSrcSB(12),
@@ -151,31 +160,31 @@ func (api *AdminAPI) BaseRequest(action string) *BaseRequest {
 	}
 }
 
-func (api *AdminAPI) ListSessions() (interface{}, error) {
+func (api *AdminAPIImpl) ListSessions() (interface{}, error) {
 	return api.transport.Request(api.BaseRequest("list_sessions"))
 }
 
-func (api *AdminAPI) AddToken(token string, plugins []string) (interface{}, error) {
+func (api *AdminAPIImpl) AddToken(token string, plugins []string) (interface{}, error) {
 	return api.tokenRequest("add_token", token, plugins)
 }
 
-func (api *AdminAPI) AllowToken(token string, plugins []string) (interface{}, error) {
+func (api *AdminAPIImpl) AllowToken(token string, plugins []string) (interface{}, error) {
 	return api.tokenRequest("allow_token", token, plugins)
 }
 
-func (api *AdminAPI) DisallowToken(token string, plugins []string) (interface{}, error) {
+func (api *AdminAPIImpl) DisallowToken(token string, plugins []string) (interface{}, error) {
 	return api.tokenRequest("disallow_token", token, plugins)
 }
 
-func (api *AdminAPI) RemoveToken(token string) (interface{}, error) {
+func (api *AdminAPIImpl) RemoveToken(token string) (interface{}, error) {
 	return api.tokenRequest("remove_token", token, nil)
 }
 
-func (api *AdminAPI) ListTokens() (interface{}, error) {
+func (api *AdminAPIImpl) ListTokens() (interface{}, error) {
 	return api.transport.Request(api.BaseRequest("list_tokens"))
 }
 
-func (api *AdminAPI) tokenRequest(action, token string, plugins []string) (interface{}, error) {
+func (api *AdminAPIImpl) tokenRequest(action, token string, plugins []string) (interface{}, error) {
 	req := &TokenRequest{
 		BaseRequest: *api.BaseRequest(action),
 		Token:       token,
