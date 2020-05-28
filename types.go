@@ -155,7 +155,7 @@ type SuccessAMResponse struct {
 	Data map[string]interface{} `json:"data"`
 }
 
-type ListSessionsAMResponse struct {
+type ListSessionsResponse struct {
 	BaseAMResponse
 	Sessions []int `json:"sessions"`
 }
@@ -170,11 +170,27 @@ type ListTokensResponse struct {
 	Data map[string][]*StoredToken `json:"data"`
 }
 
+type SessionResponse struct {
+	BaseAMResponse
+	SessionID uint64 `json:"session_id"`
+}
+
+type HandleResponse struct {
+	SessionResponse
+	HandleID uint64 `json:"handle_id"`
+}
+
+type HandleInfoResponse struct {
+	HandleResponse
+	Info map[string]interface{} `json:"info"`
+}
+
 var amResponseTypes = map[string]func() interface{}{
 	"error":         func() interface{} { return &ErrorAMResponse{} },
 	"success":       func() interface{} { return &SuccessAMResponse{} },
-	"list_sessions": func() interface{} { return &ListSessionsAMResponse{} },
 	"list_tokens":   func() interface{} { return &ListTokensResponse{} },
+	"list_sessions": func() interface{} { return &ListSessionsResponse{} },
+	"handle_info":   func() interface{} { return &HandleInfoResponse{} },
 }
 
 // Event handler types
@@ -322,23 +338,23 @@ func (dt *DateTime) IsSet() bool {
 	return dt.UnixNano() != nilTime
 }
 
-func ParseMessage(data []byte) (interface{}, error) {
+func ParseMessage(data []byte) (*BaseMsg, interface{}, error) {
 	var base BaseMsg
 	if err := json.Unmarshal(data, &base); err != nil {
-		return nil, fmt.Errorf("json.Unmarshal: %w", err)
+		return nil, nil, fmt.Errorf("json.Unmarshal: %w", err)
 	}
 
 	typeFunc, ok := msgtypes[base.Type]
 	if !ok {
-		return nil, fmt.Errorf("unknown message type received: %s", base.Type)
+		return &base, nil, fmt.Errorf("unknown message type received: %s", base.Type)
 	}
 
 	msg := typeFunc()
 	if err := json.Unmarshal(data, &msg); err != nil {
-		return nil, fmt.Errorf("json.Unmarshal %s : %w", base.Type, err)
+		return &base, nil, fmt.Errorf("json.Unmarshal %s : %w", base.Type, err)
 	}
 
-	return msg, nil
+	return &base, msg, nil
 }
 
 func ParseAMResponse(request string, data []byte) (interface{}, error) {

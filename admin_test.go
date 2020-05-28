@@ -6,16 +6,10 @@ import (
 
 func TestAdminTokens(t *testing.T) {
 	api, err := NewAdminAPI("http://localhost:7088/admin", "janus-go")
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+	noError(t, err)
 
 	resp, err := api.AddToken("test-token", []string{"janus.plugin.videoroom"})
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+	noError(t, err)
 	if resp == nil {
 		t.Errorf("resp is nil")
 	}
@@ -26,6 +20,7 @@ func TestAdminTokens(t *testing.T) {
 	} else {
 		if len(st.Plugins) != 1 {
 			t.Errorf("expecting 1 plugin got %d", len(st.Plugins))
+			return
 		}
 		if st.Plugins[0] != "janus.plugin.videoroom" {
 			t.Errorf("expecting plugin %s != %s", "janus.plugin.videoroom", st.Plugins[0])
@@ -33,10 +28,7 @@ func TestAdminTokens(t *testing.T) {
 	}
 
 	resp, err = api.AllowToken("test-token", []string{"janus.plugin.echotest"})
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+	noError(t, err)
 
 	st = findToken(t, api, "test-token")
 	if st == nil {
@@ -48,10 +40,7 @@ func TestAdminTokens(t *testing.T) {
 	}
 
 	resp, err = api.DisallowToken("test-token", []string{"janus.plugin.videoroom"})
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+	noError(t, err)
 
 	st = findToken(t, api, "test-token")
 	if st == nil {
@@ -59,6 +48,7 @@ func TestAdminTokens(t *testing.T) {
 	} else {
 		if len(st.Plugins) != 1 {
 			t.Errorf("expecting 1 plugin got %d", len(st.Plugins))
+			return
 		}
 		if st.Plugins[0] != "janus.plugin.echotest" {
 			t.Errorf("expecting plugin %s != %s", "janus.plugin.echotest", st.Plugins[0])
@@ -66,10 +56,7 @@ func TestAdminTokens(t *testing.T) {
 	}
 
 	resp, err = api.RemoveToken("test-token")
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+	noError(t, err)
 
 	st = findToken(t, api, "test-token")
 	if st != nil {
@@ -80,15 +67,14 @@ func TestAdminTokens(t *testing.T) {
 
 func findToken(t *testing.T, api AdminAPI, token string) *StoredToken {
 	resp, err := api.ListTokens()
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
+	noError(t, err)
 
 	tokens, ok := resp.(*ListTokensResponse)
 	if !ok {
 		t.Errorf("wrong type: ListTokensResponse != %v", resp)
+		return nil
 	}
+
 	for _, x := range tokens.Data["tokens"] {
 		if x.Token == token {
 			return x
@@ -96,4 +82,85 @@ func findToken(t *testing.T, api AdminAPI, token string) *StoredToken {
 	}
 
 	return nil
+}
+
+func TestAdminAPIImpl_ListSessions(t *testing.T) {
+	client, err := Connect("ws://localhost:8188/")
+	noError(t, err)
+	defer client.Close()
+
+	api, err := NewAdminAPI("http://localhost:7088/admin", "janus-go")
+	noError(t, err)
+
+	_, err = api.AddToken("test-token", []string{})
+	noError(t, err)
+	defer api.RemoveToken("test-token")
+	client.Token = "test-token"
+
+	session, err := client.Create()
+	noError(t, err)
+	defer session.Destroy()
+
+	resp, err := api.ListSessions()
+	noError(t, err)
+
+	tResp, ok := resp.(*ListSessionsResponse)
+	if !ok {
+		t.Errorf("wrong type: ListSessionsResponse != %v", resp)
+		return
+	}
+	if len(tResp.Sessions) != 1 {
+		t.Errorf("expecting exactly 1 session found %d", len(tResp.Sessions))
+		return
+	}
+
+	if int(session.Id) != tResp.Sessions[0] {
+		t.Errorf("sessionID mismatch, expected %d got %d", session.Id, tResp.Sessions[0])
+		return
+	}
+}
+
+func TestAdminAPIImpl_HandleInfo(t *testing.T) {
+	client, err := Connect("ws://localhost:8188/")
+	noError(t, err)
+	defer client.Close()
+
+	api, err := NewAdminAPI("http://localhost:7088/admin", "janus-go")
+	noError(t, err)
+
+	_, err = api.AddToken("test-token", []string{})
+	noError(t, err)
+	defer api.RemoveToken("test-token")
+	client.Token = "test-token"
+
+	session, err := client.Create()
+	noError(t, err)
+	defer session.Destroy()
+
+	handle, err := session.Attach("janus.plugin.videoroom")
+	noError(t, err)
+	defer handle.Detach()
+
+	resp, err := api.HandleInfo(session.Id, handle.Id)
+	noError(t, err)
+	if resp == nil {
+		t.Error("resp is nil")
+		return
+	}
+	tResp, ok := resp.(*HandleInfoResponse)
+	if !ok {
+		t.Errorf("wrong type: HandleInfoResponse != %v", resp)
+		return
+	}
+	if tResp.Info == nil {
+		t.Error("expected info to not be nil")
+		return
+	}
+}
+
+func noError(t *testing.T, err error) {
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
 }

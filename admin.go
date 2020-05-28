@@ -52,6 +52,36 @@ func (r *TokenRequest) Payload() map[string]interface{} {
 	return m
 }
 
+type SessionRequest struct {
+	BaseRequest
+	SessionID uint64
+}
+
+func (r *SessionRequest) Payload() map[string]interface{} {
+	m := r.BaseRequest.Payload()
+	m["session_id"] = r.SessionID
+	return m
+}
+
+func (r *SessionRequest) Endpoint() string {
+	return fmt.Sprintf("/%d", r.SessionID)
+}
+
+type HandleRequest struct {
+	SessionRequest
+	HandleID uint64
+}
+
+func (r *HandleRequest) Endpoint() string {
+	return fmt.Sprintf("%s/%d", r.SessionRequest.Endpoint(), r.HandleID)
+}
+
+func (r *HandleRequest) Payload() map[string]interface{} {
+	m := r.SessionRequest.Payload()
+	m["handle_id"] = r.HandleID
+	return m
+}
+
 type Transport interface {
 	Request(APIRequest) (interface{}, error)
 }
@@ -126,12 +156,15 @@ func (t *HttpTransport) Request(r APIRequest) (interface{}, error) {
 }
 
 type AdminAPI interface {
-	ListSessions() (interface{}, error)
 	AddToken(token string, plugins []string) (interface{}, error)
 	AllowToken(token string, plugins []string) (interface{}, error)
 	DisallowToken(token string, plugins []string) (interface{}, error)
 	RemoveToken(token string) (interface{}, error)
 	ListTokens() (interface{}, error)
+
+	ListSessions() (interface{}, error)
+
+	HandleInfo(sessionID, handleID uint64) (interface{}, error)
 }
 
 type AdminAPIImpl struct {
@@ -152,43 +185,60 @@ func NewAdminAPI(url, secret string) (*AdminAPIImpl, error) {
 	return api, nil
 }
 
-func (api *AdminAPIImpl) BaseRequest(action string) *BaseRequest {
+func (api *AdminAPIImpl) AddToken(token string, plugins []string) (interface{}, error) {
+	return api.transport.Request(api.makeTokenRequest("add_token", token, plugins))
+}
+
+func (api *AdminAPIImpl) AllowToken(token string, plugins []string) (interface{}, error) {
+	return api.transport.Request(api.makeTokenRequest("allow_token", token, plugins))
+}
+
+func (api *AdminAPIImpl) DisallowToken(token string, plugins []string) (interface{}, error) {
+	return api.transport.Request(api.makeTokenRequest("disallow_token", token, plugins))
+}
+
+func (api *AdminAPIImpl) RemoveToken(token string) (interface{}, error) {
+	return api.transport.Request(api.makeTokenRequest("remove_token", token, nil))
+}
+
+func (api *AdminAPIImpl) ListTokens() (interface{}, error) {
+	return api.transport.Request(api.makeBaseRequest("list_tokens"))
+}
+
+func (api *AdminAPIImpl) ListSessions() (interface{}, error) {
+	return api.transport.Request(api.makeBaseRequest("list_sessions"))
+}
+
+func (api *AdminAPIImpl) HandleInfo(sessionID, handleID uint64) (interface{}, error) {
+	return api.transport.Request(api.makeHandleRequest("handle_info", sessionID, handleID))
+}
+
+func (api *AdminAPIImpl) makeBaseRequest(action string) *BaseRequest {
 	return &BaseRequest{
 		Action:      action,
-		Transaction: RandStringBytesMaskImprSrcSB(12),
+		Transaction: RandString(12),
 		Secret:      api.secret,
 	}
 }
 
-func (api *AdminAPIImpl) ListSessions() (interface{}, error) {
-	return api.transport.Request(api.BaseRequest("list_sessions"))
-}
-
-func (api *AdminAPIImpl) AddToken(token string, plugins []string) (interface{}, error) {
-	return api.tokenRequest("add_token", token, plugins)
-}
-
-func (api *AdminAPIImpl) AllowToken(token string, plugins []string) (interface{}, error) {
-	return api.tokenRequest("allow_token", token, plugins)
-}
-
-func (api *AdminAPIImpl) DisallowToken(token string, plugins []string) (interface{}, error) {
-	return api.tokenRequest("disallow_token", token, plugins)
-}
-
-func (api *AdminAPIImpl) RemoveToken(token string) (interface{}, error) {
-	return api.tokenRequest("remove_token", token, nil)
-}
-
-func (api *AdminAPIImpl) ListTokens() (interface{}, error) {
-	return api.transport.Request(api.BaseRequest("list_tokens"))
-}
-
-func (api *AdminAPIImpl) tokenRequest(action, token string, plugins []string) (interface{}, error) {
-	req := &TokenRequest{
-		BaseRequest: *api.BaseRequest(action),
+func (api *AdminAPIImpl) makeTokenRequest(action, token string, plugins []string) *TokenRequest {
+	return &TokenRequest{
+		BaseRequest: *api.makeBaseRequest(action),
 		Token:       token,
 		Plugins:     plugins,
 	}
-	return api.transport.Request(req)
+}
+
+func (api *AdminAPIImpl) makeSessionRequest(action string, sessionID uint64) *SessionRequest {
+	return &SessionRequest{
+		BaseRequest: *api.makeBaseRequest(action),
+		SessionID:   sessionID,
+	}
+}
+
+func (api *AdminAPIImpl) makeHandleRequest(action string, sessionID, handleID uint64) *HandleRequest {
+	return &HandleRequest{
+		SessionRequest: *api.makeSessionRequest(action, sessionID),
+		HandleID:       handleID,
+	}
 }

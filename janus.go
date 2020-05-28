@@ -31,8 +31,12 @@ type Gateway struct {
 	// Sessions is a map of the currently active sessions to the gateway.
 	Sessions map[uint64]*Session
 
+	// Stored token to use for authentication.
+	// See https://janus.conf.meetecho.com/docs/auth.html#token
+	Token string
+
 	// Access to the Sessions map should be synchronized with the Gateway.Lock()
-	// and Gateway.Unlock() methods provided by the embeded sync.Mutex.
+	// and Gateway.Unlock() methods provided by the embedded sync.Mutex.
 	sync.Mutex
 
 	conn            *websocket.Conn
@@ -76,6 +80,10 @@ func (gateway *Gateway) send(msg map[string]interface{}, transaction chan interf
 	gateway.Lock()
 	gateway.transactions[id] = transaction
 	gateway.Unlock()
+
+	if gateway.Token != "" {
+		msg["token"] = gateway.Token
+	}
 
 	data, err := json.Marshal(msg)
 	if err != nil {
@@ -127,12 +135,11 @@ func (gateway *Gateway) recv() {
 		}
 
 		// parse message
-		msg, err := ParseMessage(data)
+		base, msg, err := ParseMessage(data)
 		if err != nil {
 			fmt.Printf("parse error: %s\n", err)
 			continue
 		}
-		base := msg.(BaseMsg)
 
 		// Pass message on from here
 		if base.PluginData.Plugin != "" {
