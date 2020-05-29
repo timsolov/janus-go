@@ -155,11 +155,6 @@ type SuccessAMResponse struct {
 	Data map[string]interface{} `json:"data"`
 }
 
-type ListSessionsResponse struct {
-	BaseAMResponse
-	Sessions []int `json:"sessions"`
-}
-
 type StoredToken struct {
 	Token   string   `json:"token"`
 	Plugins []string `json:"allowed_plugins"`
@@ -170,9 +165,19 @@ type ListTokensResponse struct {
 	Data map[string][]*StoredToken `json:"data"`
 }
 
+type ListSessionsResponse struct {
+	BaseAMResponse
+	Sessions []uint64 `json:"sessions"`
+}
+
 type SessionResponse struct {
 	BaseAMResponse
 	SessionID uint64 `json:"session_id"`
+}
+
+type ListHandlesResponse struct {
+	SessionResponse
+	Handles []uint64 `json:"handles"`
 }
 
 type HandleResponse struct {
@@ -190,6 +195,7 @@ var amResponseTypes = map[string]func() interface{}{
 	"success":       func() interface{} { return &SuccessAMResponse{} },
 	"list_tokens":   func() interface{} { return &ListTokensResponse{} },
 	"list_sessions": func() interface{} { return &ListSessionsResponse{} },
+	"list_handles":  func() interface{} { return &ListHandlesResponse{} },
 	"handle_info":   func() interface{} { return &HandleInfoResponse{} },
 }
 

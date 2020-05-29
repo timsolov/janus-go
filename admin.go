@@ -164,6 +164,7 @@ type AdminAPI interface {
 
 	ListSessions() (interface{}, error)
 
+	ListHandles(sessionID uint64) (interface{}, error)
 	HandleInfo(sessionID, handleID uint64) (interface{}, error)
 }
 
@@ -207,6 +208,10 @@ func (api *AdminAPIImpl) ListTokens() (interface{}, error) {
 
 func (api *AdminAPIImpl) ListSessions() (interface{}, error) {
 	return api.transport.Request(api.makeBaseRequest("list_sessions"))
+}
+
+func (api *AdminAPIImpl) ListHandles(sessionID uint64) (interface{}, error) {
+	return api.transport.Request(api.makeSessionRequest("list_handles", sessionID))
 }
 
 func (api *AdminAPIImpl) HandleInfo(sessionID, handleID uint64) (interface{}, error) {

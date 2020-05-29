@@ -110,12 +110,55 @@ func TestAdminAPIImpl_ListSessions(t *testing.T) {
 		return
 	}
 	if len(tResp.Sessions) != 1 {
-		t.Errorf("expecting exactly 1 session found %d", len(tResp.Sessions))
+		t.Errorf("expecting exactly 1 session, found %d", len(tResp.Sessions))
 		return
 	}
 
-	if int(session.Id) != tResp.Sessions[0] {
+	if session.Id != tResp.Sessions[0] {
 		t.Errorf("sessionID mismatch, expected %d got %d", session.Id, tResp.Sessions[0])
+		return
+	}
+}
+
+func TestAdminAPIImpl_ListHandles(t *testing.T) {
+	client, err := Connect("ws://localhost:8188/")
+	noError(t, err)
+	defer client.Close()
+
+	api, err := NewAdminAPI("http://localhost:7088/admin", "janus-go")
+	noError(t, err)
+
+	_, err = api.AddToken("test-token", []string{})
+	noError(t, err)
+	defer api.RemoveToken("test-token")
+	client.Token = "test-token"
+
+	session, err := client.Create()
+	noError(t, err)
+	defer session.Destroy()
+
+	handle, err := session.Attach("janus.plugin.videoroom")
+	noError(t, err)
+	defer handle.Detach()
+
+	resp, err := api.ListHandles(session.Id)
+	noError(t, err)
+	if resp == nil {
+		t.Error("resp is nil")
+		return
+	}
+	tResp, ok := resp.(*ListHandlesResponse)
+	if !ok {
+		t.Errorf("wrong type: ListHandlesResponse != %v", resp)
+		return
+	}
+	if len(tResp.Handles) != 1 {
+		t.Errorf("expecting exactly 1 handle, found %d", len(tResp.Handles))
+		return
+	}
+
+	if handle.Id != tResp.Handles[0] {
+		t.Errorf("handleID mismatch, expected %d got %d", handle.Id, tResp.Handles[0])
 		return
 	}
 }
