@@ -170,6 +170,11 @@ type ListSessionsResponse struct {
 	Sessions []uint64 `json:"sessions"`
 }
 
+type MessagePluginResponse struct {
+	BaseAMResponse
+	Response map[string]interface{} `json:"response"`
+}
+
 type SessionResponse struct {
 	BaseAMResponse
 	SessionID uint64 `json:"session_id"`
@@ -191,12 +196,13 @@ type HandleInfoResponse struct {
 }
 
 var amResponseTypes = map[string]func() interface{}{
-	"error":         func() interface{} { return &ErrorAMResponse{} },
-	"success":       func() interface{} { return &SuccessAMResponse{} },
-	"list_tokens":   func() interface{} { return &ListTokensResponse{} },
-	"list_sessions": func() interface{} { return &ListSessionsResponse{} },
-	"list_handles":  func() interface{} { return &ListHandlesResponse{} },
-	"handle_info":   func() interface{} { return &HandleInfoResponse{} },
+	"error":          func() interface{} { return &ErrorAMResponse{} },
+	"success":        func() interface{} { return &SuccessAMResponse{} },
+	"list_tokens":    func() interface{} { return &ListTokensResponse{} },
+	"list_sessions":  func() interface{} { return &ListSessionsResponse{} },
+	"message_plugin": func() interface{} { return &MessagePluginResponse{} },
+	"list_handles":   func() interface{} { return &ListHandlesResponse{} },
+	"handle_info":    func() interface{} { return &HandleInfoResponse{} },
 }
 
 // Event handler types

@@ -52,6 +52,19 @@ func (r *TokenRequest) Payload() map[string]interface{} {
 	return m
 }
 
+type MessagePluginRequest struct {
+	BaseRequest
+	Plugin  string
+	Request map[string]interface{}
+}
+
+func (r *MessagePluginRequest) Payload() map[string]interface{} {
+	m := r.BaseRequest.Payload()
+	m["plugin"] = r.Plugin
+	m["request"] = r.Request
+	return m
+}
+
 type SessionRequest struct {
 	BaseRequest
 	SessionID uint64
@@ -163,6 +176,7 @@ type AdminAPI interface {
 	ListTokens() (interface{}, error)
 
 	ListSessions() (interface{}, error)
+	MessagePlugin(plugin string, request map[string]interface{}) (interface{}, error)
 
 	ListHandles(sessionID uint64) (interface{}, error)
 	HandleInfo(sessionID, handleID uint64) (interface{}, error)
@@ -210,6 +224,10 @@ func (api *AdminAPIImpl) ListSessions() (interface{}, error) {
 	return api.transport.Request(api.makeBaseRequest("list_sessions"))
 }
 
+func (api *AdminAPIImpl) MessagePlugin(plugin string, request map[string]interface{}) (interface{}, error) {
+	return api.transport.Request(api.makeMessagePluginRequest(plugin, request))
+}
+
 func (api *AdminAPIImpl) ListHandles(sessionID uint64) (interface{}, error) {
 	return api.transport.Request(api.makeSessionRequest("list_handles", sessionID))
 }
@@ -231,6 +249,14 @@ func (api *AdminAPIImpl) makeTokenRequest(action, token string, plugins []string
 		BaseRequest: *api.makeBaseRequest(action),
 		Token:       token,
 		Plugins:     plugins,
+	}
+}
+
+func (api *AdminAPIImpl) makeMessagePluginRequest(plugin string, request map[string]interface{}) *MessagePluginRequest {
+	return &MessagePluginRequest{
+		BaseRequest: *api.makeBaseRequest("message_plugin"),
+		Plugin:      plugin,
+		Request:     request,
 	}
 }
 

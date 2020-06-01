@@ -120,6 +120,33 @@ func TestAdminAPIImpl_ListSessions(t *testing.T) {
 	}
 }
 
+func TestAdminAPIImpl_MessagePlugin(t *testing.T) {
+	client, err := Connect("ws://localhost:8188/")
+	noError(t, err)
+	defer client.Close()
+
+	api, err := NewAdminAPI("http://localhost:7088/admin", "janus-go")
+	noError(t, err)
+
+	_, err = api.AddToken("test-token", []string{})
+	noError(t, err)
+	defer api.RemoveToken("test-token")
+	client.Token = "test-token"
+
+	resp, err := api.MessagePlugin("janus.plugin.videoroom", map[string]interface{}{"request": "list"})
+	noError(t, err)
+
+	tResp, ok := resp.(*MessagePluginResponse)
+	if !ok {
+		t.Errorf("wrong type: MessagePluginResponse != %v", resp)
+		return
+	}
+	if len(tResp.Response) == 0 {
+		t.Error("tResp.Response is empty")
+		return
+	}
+}
+
 func TestAdminAPIImpl_ListHandles(t *testing.T) {
 	client, err := Connect("ws://localhost:8188/")
 	noError(t, err)
@@ -184,7 +211,7 @@ func TestAdminAPIImpl_HandleInfo(t *testing.T) {
 	noError(t, err)
 	defer handle.Detach()
 
-	resp, err := api.HandleInfo(session.Id, handle.Id)
+	resp, err := api.HandleInfo(session.Id+1, handle.Id+1)
 	noError(t, err)
 	if resp == nil {
 		t.Error("resp is nil")
