@@ -134,77 +134,6 @@ type HangupMsg struct {
 	Handle  uint64 `json:"sender"`
 }
 
-// Admin / Monitor API types
-
-type BaseAMResponse struct {
-	Type string `json:"janus"`
-	Id   string `json:"transaction"`
-}
-
-type ErrorAMResponse struct {
-	BaseAMResponse
-	Err ErrorData `json:"error"`
-}
-
-func (err *ErrorAMResponse) Error() string {
-	return err.Err.Reason
-}
-
-type SuccessAMResponse struct {
-	BaseAMResponse
-	Data map[string]interface{} `json:"data"`
-}
-
-type StoredToken struct {
-	Token   string   `json:"token"`
-	Plugins []string `json:"allowed_plugins"`
-}
-
-type ListTokensResponse struct {
-	BaseAMResponse
-	Data map[string][]*StoredToken `json:"data"`
-}
-
-type ListSessionsResponse struct {
-	BaseAMResponse
-	Sessions []uint64 `json:"sessions"`
-}
-
-type MessagePluginResponse struct {
-	BaseAMResponse
-	Response map[string]interface{} `json:"response"`
-}
-
-type SessionResponse struct {
-	BaseAMResponse
-	SessionID uint64 `json:"session_id"`
-}
-
-type ListHandlesResponse struct {
-	SessionResponse
-	Handles []uint64 `json:"handles"`
-}
-
-type HandleResponse struct {
-	SessionResponse
-	HandleID uint64 `json:"handle_id"`
-}
-
-type HandleInfoResponse struct {
-	HandleResponse
-	Info map[string]interface{} `json:"info"`
-}
-
-var amResponseTypes = map[string]func() interface{}{
-	"error":          func() interface{} { return &ErrorAMResponse{} },
-	"success":        func() interface{} { return &SuccessAMResponse{} },
-	"list_tokens":    func() interface{} { return &ListTokensResponse{} },
-	"list_sessions":  func() interface{} { return &ListSessionsResponse{} },
-	"message_plugin": func() interface{} { return &MessagePluginResponse{} },
-	"list_handles":   func() interface{} { return &ListHandlesResponse{} },
-	"handle_info":    func() interface{} { return &HandleInfoResponse{} },
-}
-
 // Event handler types
 
 type BaseEvent struct {
@@ -367,34 +296,6 @@ func ParseMessage(data []byte) (*BaseMsg, interface{}, error) {
 	}
 
 	return &base, msg, nil
-}
-
-func ParseAMResponse(request string, data []byte) (interface{}, error) {
-	var base BaseAMResponse
-	if err := json.Unmarshal(data, &base); err != nil {
-		return nil, fmt.Errorf("json.Unmarshal: %w", err)
-	}
-
-	typeStr := base.Type
-	if typeStr == "success" {
-		typeStr = request
-	}
-
-	typeFunc, ok := amResponseTypes[typeStr]
-	if !ok {
-		if base.Type == "success" {
-			typeFunc = amResponseTypes["success"]
-		} else {
-			return nil, fmt.Errorf("unknown admin / monitor API type received: %s", typeStr)
-		}
-	}
-
-	resp := typeFunc()
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return nil, fmt.Errorf("json.Unmarshal %s : %w", typeStr, err)
-	}
-
-	return resp, nil
 }
 
 func ParseEvent(data []byte) (interface{}, error) {

@@ -1,7 +1,11 @@
-package janus
+package admin
 
 import (
+	"fmt"
 	"testing"
+
+	"github.com/edoshor/janus-go"
+	"github.com/edoshor/janus-go/plugins"
 )
 
 func TestAdminTokens(t *testing.T) {
@@ -62,7 +66,6 @@ func TestAdminTokens(t *testing.T) {
 	if st != nil {
 		t.Errorf("token in list response after removal")
 	}
-
 }
 
 func findToken(t *testing.T, api AdminAPI, token string) *StoredToken {
@@ -84,8 +87,8 @@ func findToken(t *testing.T, api AdminAPI, token string) *StoredToken {
 	return nil
 }
 
-func TestAdminAPIImpl_ListSessions(t *testing.T) {
-	client, err := Connect("ws://localhost:8188/")
+func TestDefaultAdminAPI_ListSessions(t *testing.T) {
+	client, err := janus.Connect("ws://localhost:8188/")
 	noError(t, err)
 	defer client.Close()
 
@@ -120,8 +123,8 @@ func TestAdminAPIImpl_ListSessions(t *testing.T) {
 	}
 }
 
-func TestAdminAPIImpl_MessagePlugin(t *testing.T) {
-	client, err := Connect("ws://localhost:8188/")
+func TestDefaultAdminAPI_MessagePlugin(t *testing.T) {
+	client, err := janus.Connect("ws://localhost:8188/")
 	noError(t, err)
 	defer client.Close()
 
@@ -133,22 +136,136 @@ func TestAdminAPIImpl_MessagePlugin(t *testing.T) {
 	defer api.RemoveToken("test-token")
 	client.Token = "test-token"
 
-	resp, err := api.MessagePlugin("janus.plugin.videoroom", map[string]interface{}{"request": "list"})
+	requestFactory := plugins.MakeVideoroomRequestFactory("supersecret")
+
+	room := &plugins.VideoroomRoom{
+		Room:          88,
+		Description:   "test videoroom",
+		IsPrivate:     false,
+		Secret:        "test_secret",
+		Pin:           "123456",
+		Publishers:    25,
+		Bitrate:       128000,
+		AudioCodec:    "opus",
+		VideoCodec:    "h264",
+		H264Profile:   "42e01f",
+		NotifyJoining: true,
+	}
+	resp, err := api.MessagePlugin(requestFactory.CreateRequest(room, false, nil))
 	noError(t, err)
 
-	tResp, ok := resp.(*MessagePluginResponse)
+	tResp2, ok := resp.(*plugins.VideoroomCreateResponse)
 	if !ok {
-		t.Errorf("wrong type: MessagePluginResponse != %v", resp)
+		t.Errorf("wrong type: VideoroomCreateResponse != %v", resp)
 		return
 	}
-	if len(tResp.Response) == 0 {
-		t.Error("tResp.Response is empty")
-		return
+	if tResp2.RoomID != room.Room {
+		t.Error("RoomID mismatch")
+	}
+
+	r := findVideoroom(t, api, requestFactory, room.Room)
+	if r == nil {
+		t.Error("Videoroom not found")
+	} else {
+		if r.Description != room.Description {
+			t.Error("Videoroom description mismatch")
+		}
+		if !r.PinRequired {
+			t.Error("Videoroom PinRequired is expected to be true")
+		}
+		if r.MaxPublishers != room.Publishers {
+			t.Error("Videoroom Publishers mismatch")
+		}
+		if r.Bitrate != room.Bitrate {
+			t.Error("Videoroom Bitrate mismatch")
+		}
+		if r.AudioCodec != room.AudioCodec {
+			t.Error("Videoroom AudioCodec mismatch")
+		}
+		if r.VideoCodec != room.VideoCodec {
+			t.Error("Videoroom VideoCodec mismatch")
+		}
+	}
+
+	editRoom := &plugins.VideoroomRoomForEdit{
+		Room:         room.Room,
+		Description:  fmt.Sprintf("%s edit", room.Description),
+		Secret:       fmt.Sprintf("%s edit", room.Secret),
+		Pin:          fmt.Sprintf("%s edit", room.Pin),
+		RequirePvtID: !room.RequirePvtID,
+		Publishers:   room.Publishers + 1,
+		Bitrate:      room.Bitrate + 1000,
+		FirFreq:      room.FirFreq + 10,
+		LockRecord:   !room.LockRecord,
+	}
+
+	editRoom.Room++
+	resp, err = api.MessagePlugin(requestFactory.EditRequest(editRoom, false, room.Secret))
+	if err == nil {
+		t.Error("expecting err on edit of non existing videoroom")
+	}
+	editRoom.Room--
+	resp, err = api.MessagePlugin(requestFactory.EditRequest(editRoom, false, room.Secret))
+	noError(t, err)
+	r = findVideoroom(t, api, requestFactory, room.Room)
+	if r == nil {
+		t.Error("Edited Videoroom not found")
+	} else {
+		if r.Description != editRoom.Description {
+			t.Error("Videoroom description mismatch")
+		}
+		if r.MaxPublishers != editRoom.Publishers {
+			t.Error("Videoroom Publishers mismatch")
+		}
+		if r.Bitrate != editRoom.Bitrate {
+			t.Error("Videoroom Bitrate mismatch")
+		}
+		if r.RequirePvtID != editRoom.RequirePvtID {
+			t.Error("Videoroom RequirePvtID mismatch")
+		}
+		if r.FirFreq != editRoom.FirFreq {
+			t.Error("Videoroom FirFreq mismatch")
+		}
+
+		// janus doesn't support flipping of these values
+		//if r.LockRecord != editRoom.LockRecord {
+		//	t.Error("Videoroom LockRecord mismatch")
+		//}
+	}
+
+	resp, err = api.MessagePlugin(requestFactory.DestroyRequest(room.Room+1, false, editRoom.Secret))
+	if err == nil {
+		t.Error("expecting err on destroy of non existing videoroom")
+	}
+	resp, err = api.MessagePlugin(requestFactory.DestroyRequest(room.Room, false, editRoom.Secret))
+	noError(t, err)
+	r = findVideoroom(t, api, requestFactory, room.Room)
+	if r != nil {
+		t.Error("Destroyed Videoroom is not expected to be listed")
 	}
 }
 
-func TestAdminAPIImpl_ListHandles(t *testing.T) {
-	client, err := Connect("ws://localhost:8188/")
+func findVideoroom(t *testing.T, api AdminAPI, requestFactory *plugins.VideoroomRequestFactory, room int) *plugins.VideoroomRoomFromListResponse {
+	resp, err := api.MessagePlugin(requestFactory.ListRequest())
+	noError(t, err)
+
+	tResp, ok := resp.(*plugins.VideoroomListResponse)
+	if !ok {
+		t.Errorf("wrong type: VideoroomListResponse != %v", resp)
+		return nil
+	}
+
+	for _, x := range tResp.Rooms {
+		if x.Room == room {
+			return x
+		}
+	}
+
+	return nil
+}
+
+func TestDefaultAdminAPI_ListHandles(t *testing.T) {
+	client, err := janus.Connect("ws://localhost:8188/")
 	noError(t, err)
 	defer client.Close()
 
@@ -190,8 +307,8 @@ func TestAdminAPIImpl_ListHandles(t *testing.T) {
 	}
 }
 
-func TestAdminAPIImpl_HandleInfo(t *testing.T) {
-	client, err := Connect("ws://localhost:8188/")
+func TestDefaultAdminAPI_HandleInfo(t *testing.T) {
+	client, err := janus.Connect("ws://localhost:8188/")
 	noError(t, err)
 	defer client.Close()
 
