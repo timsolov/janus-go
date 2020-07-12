@@ -67,6 +67,13 @@ var TypeMap = map[string]map[string]func() interface{}{
 		"edit":    func() interface{} { return &VideoroomEditResponse{} },
 		"destroy": func() interface{} { return &VideoroomDestroyResponse{} },
 	},
+	"janus.plugin.textroom": {
+		"error":   func() interface{} { return &TextroomErrorResponse{} },
+		"list":    func() interface{} { return &TextroomListResponse{} },
+		"create":  func() interface{} { return &TextroomCreateResponse{} },
+		"edit":    func() interface{} { return &TextroomEditResponse{} },
+		"destroy": func() interface{} { return &TextroomDestroyResponse{} },
+	},
 }
 
 func mergeMap(a, b map[string]interface{}) {

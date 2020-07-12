@@ -123,7 +123,7 @@ func TestDefaultAdminAPI_ListSessions(t *testing.T) {
 	}
 }
 
-func TestDefaultAdminAPI_MessagePlugin(t *testing.T) {
+func TestDefaultAdminAPI_MessagePlugin_Videoroom(t *testing.T) {
 	client, err := janus.Connect("ws://localhost:8188/")
 	noError(t, err)
 	defer client.Close()
@@ -252,6 +252,109 @@ func findVideoroom(t *testing.T, api AdminAPI, requestFactory *plugins.Videoroom
 	tResp, ok := resp.(*plugins.VideoroomListResponse)
 	if !ok {
 		t.Errorf("wrong type: VideoroomListResponse != %v", resp)
+		return nil
+	}
+
+	for _, x := range tResp.Rooms {
+		if x.Room == room {
+			return x
+		}
+	}
+
+	return nil
+}
+
+func TestDefaultAdminAPI_MessagePlugin_Textroom(t *testing.T) {
+	client, err := janus.Connect("ws://localhost:8188/")
+	noError(t, err)
+	defer client.Close()
+
+	api, err := NewAdminAPI("http://localhost:7088/admin", "janus-go")
+	noError(t, err)
+
+	_, err = api.AddToken("test-token", []string{})
+	noError(t, err)
+	defer api.RemoveToken("test-token")
+	client.Token = "test-token"
+
+	requestFactory := plugins.MakeTextroomRequestFactory("supersecret")
+
+	room := &plugins.TextroomRoom{
+		Room:        88,
+		Description: "test textroom",
+		IsPrivate:   false,
+		Secret:      "test_secret",
+		Pin:         "123456",
+		Post:        "https://textroom.example.com/post",
+	}
+	resp, err := api.MessagePlugin(requestFactory.CreateRequest(room, false, nil))
+	noError(t, err)
+
+	tResp2, ok := resp.(*plugins.TextroomCreateResponse)
+	if !ok {
+		t.Errorf("wrong type: TextroomCreateResponse != %v", resp)
+		return
+	}
+	if tResp2.RoomID != room.Room {
+		t.Error("RoomID mismatch")
+	}
+
+	r := findTextroom(t, api, requestFactory, room.Room)
+	if r == nil {
+		t.Error("Textroom not found")
+	} else {
+		if r.Description != room.Description {
+			t.Error("Textroom description mismatch")
+		}
+		if !r.PinRequired {
+			t.Error("Textroom PinRequired is expected to be true")
+		}
+	}
+
+	editRoom := &plugins.TextroomRoomForEdit{
+		Room:        room.Room,
+		Description: fmt.Sprintf("%s edit", room.Description),
+		Secret:      fmt.Sprintf("%s edit", room.Secret),
+		Pin:         fmt.Sprintf("%s edit", room.Pin),
+		Post:        fmt.Sprintf("%s/edit", room.Post),
+	}
+
+	editRoom.Room++
+	resp, err = api.MessagePlugin(requestFactory.EditRequest(editRoom, false, room.Secret))
+	if err == nil {
+		t.Error("expecting err on edit of non existing textroom")
+	}
+	editRoom.Room--
+	resp, err = api.MessagePlugin(requestFactory.EditRequest(editRoom, false, room.Secret))
+	noError(t, err)
+	r = findTextroom(t, api, requestFactory, room.Room)
+	if r == nil {
+		t.Error("Edited Textroom not found")
+	} else {
+		if r.Description != editRoom.Description {
+			t.Error("Textroom description mismatch")
+		}
+	}
+
+	resp, err = api.MessagePlugin(requestFactory.DestroyRequest(room.Room+1, false, editRoom.Secret))
+	if err == nil {
+		t.Error("expecting err on destroy of non existing textroom")
+	}
+	resp, err = api.MessagePlugin(requestFactory.DestroyRequest(room.Room, false, editRoom.Secret))
+	noError(t, err)
+	r = findTextroom(t, api, requestFactory, room.Room)
+	if r != nil {
+		t.Error("Destroyed Videoroom is not expected to be listed")
+	}
+}
+
+func findTextroom(t *testing.T, api AdminAPI, requestFactory *plugins.TextroomRequestFactory, room int) *plugins.TextroomRoomFromListResponse {
+	resp, err := api.MessagePlugin(requestFactory.ListRequest())
+	noError(t, err)
+
+	tResp, ok := resp.(*plugins.TextroomListResponse)
+	if !ok {
+		t.Errorf("wrong type: TextroomListResponse != %v", resp)
 		return nil
 	}
 
