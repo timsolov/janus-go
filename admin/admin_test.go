@@ -117,8 +117,8 @@ func TestDefaultAdminAPI_ListSessions(t *testing.T) {
 		return
 	}
 
-	if session.Id != tResp.Sessions[0] {
-		t.Errorf("sessionID mismatch, expected %d got %d", session.Id, tResp.Sessions[0])
+	if session.ID != tResp.Sessions[0] {
+		t.Errorf("sessionID mismatch, expected %d got %d", session.ID, tResp.Sessions[0])
 		return
 	}
 }
@@ -388,7 +388,7 @@ func TestDefaultAdminAPI_ListHandles(t *testing.T) {
 	noError(t, err)
 	defer handle.Detach()
 
-	resp, err := api.ListHandles(session.Id)
+	resp, err := api.ListHandles(session.ID)
 	noError(t, err)
 	if resp == nil {
 		t.Error("resp is nil")
@@ -404,8 +404,8 @@ func TestDefaultAdminAPI_ListHandles(t *testing.T) {
 		return
 	}
 
-	if handle.Id != tResp.Handles[0] {
-		t.Errorf("handleID mismatch, expected %d got %d", handle.Id, tResp.Handles[0])
+	if handle.ID != tResp.Handles[0] {
+		t.Errorf("handleID mismatch, expected %d got %d", handle.ID, tResp.Handles[0])
 		return
 	}
 }
@@ -431,7 +431,7 @@ func TestDefaultAdminAPI_HandleInfo(t *testing.T) {
 	noError(t, err)
 	defer handle.Detach()
 
-	resp, err := api.HandleInfo(session.Id+1, handle.Id+1)
+	resp, err := api.HandleInfo(session.ID+1, handle.ID+1)
 	noError(t, err)
 	if resp == nil {
 		t.Error("resp is nil")

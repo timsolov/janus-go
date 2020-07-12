@@ -93,7 +93,7 @@ func (r *HandleRequest) Payload() map[string]interface{} {
 
 type BaseAMResponse struct {
 	Type string `json:"janus"`
-	Id   string `json:"transaction"`
+	ID   string `json:"transaction"`
 }
 
 type ErrorAMResponse struct {
