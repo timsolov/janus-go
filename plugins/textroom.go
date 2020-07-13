@@ -96,9 +96,7 @@ type TextroomCreateRequest struct {
 func (r *TextroomCreateRequest) Payload() map[string]interface{} {
 	payload := r.TextroomRequest.Payload()
 	payload["permanent"] = r.Permanent
-	if r.Allowed == nil {
-		payload["allowed"] = []string{}
-	} else {
+	if len(r.Allowed) > 0 {
 		payload["allowed"] = r.Allowed
 	}
 	mergeMap(payload, r.Room.AsMap())
