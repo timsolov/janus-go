@@ -135,30 +135,30 @@ type VideoroomDestroyResponse struct {
 
 type VideoroomRoom struct {
 	Room               int    `json:"room"`
-	Description        string `json:"description"`
+	Description        string `json:"description,omitempty"`
 	IsPrivate          bool   `json:"is_private"`
-	Secret             string `json:"secret"`
-	Pin                string `json:"pin"`
+	Secret             string `json:"secret,omitempty"`
+	Pin                string `json:"pin,omitempty"`
 	RequirePvtID       bool   `json:"require_pvtid"`
 	RequireE2ee        bool   `json:"require_e2ee"`
 	Publishers         int    `json:"publishers"`
 	Bitrate            int    `json:"bitrate"`
 	FirFreq            int    `json:"fir_freq"`
-	AudioCodec         string `json:"audiocodec"`
-	VideoCodec         string `json:"videocodec"`
-	Vp9Profile         string `json:"vp9_profile"`
-	H264Profile        string `json:"h264_profile"`
+	AudioCodec         string `json:"audiocodec,omitempty"`
+	VideoCodec         string `json:"videocodec,omitempty"`
+	Vp9Profile         string `json:"vp9_profile,omitempty"`
+	H264Profile        string `json:"h264_profile,omitempty"`
 	OpusFec            bool   `json:"opus_fec"`
 	VideoSvc           bool   `json:"video_svc"`
 	AudioLevelExt      bool   `json:"audiolevel_ext"`
 	AudioLevelEvent    bool   `json:"audiolevel_event"`
-	AudioActivePackets int    `json:"audio_active_packets"`
-	AudioLevelAverage  int    `json:"audio_level_average"`
+	AudioActivePackets int    `json:"audio_active_packets,omitempty"`
+	AudioLevelAverage  int    `json:"audio_level_average,omitempty"`
 	VideoOrientExt     bool   `json:"videoorient_ext"`
 	PlayoutDelayExt    bool   `json:"playoutdelay_ext"`
 	TransportWideCCExt bool   `json:"transport_wide_cc_ext"`
 	Record             bool   `json:"record"`
-	RecDir             string `json:"rec_dir"`
+	RecDir             string `json:"rec_dir,omitempty"`
 	LockRecord         bool   `json:"lock_record"`
 	NotifyJoining      bool   `json:"notify_joining"`
 }
@@ -178,10 +178,10 @@ type VideoroomRoomFromListResponse struct {
 
 type VideoroomRoomForEdit struct {
 	Room         int    `json:"room"`
-	Description  string `json:"new_description"`
+	Description  string `json:"new_description,omitempty"`
 	IsPrivate    bool   `json:"new_is_private"`
-	Secret       string `json:"new_secret"`
-	Pin          string `json:"new_pin"`
+	Secret       string `json:"new_secret,omitempty"`
+	Pin          string `json:"new_pin,omitempty"`
 	RequirePvtID bool   `json:"new_require_pvtid"`
 	Publishers   int    `json:"new_publishers"`
 	Bitrate      int    `json:"new_bitrate"`

@@ -5,8 +5,7 @@ import (
 )
 
 func Test_Connect(t *testing.T) {
-
-	client, err := Connect("ws://39.106.248.166:8188/")
+	client, err := Connect("ws://localhost:8188/")
 	if err != nil {
 		t.Fail()
 		return
@@ -18,11 +17,11 @@ func Test_Connect(t *testing.T) {
 	}
 	t.Log(mess)
 
-	sess, err := client.Create()
-	if err != nil {
-		t.Fail()
-		return
-	}
-	t.Log(sess)
-	t.Log("connect")
+	//sess, err := client.Create()
+	//if err != nil {
+	//	t.Fail()
+	//	return
+	//}
+	//t.Log(sess)
+	//t.Log("connect")
 }

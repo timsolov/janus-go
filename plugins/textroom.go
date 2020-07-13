@@ -157,11 +157,11 @@ type TextroomDestroyResponse struct {
 
 type TextroomRoom struct {
 	Room        int    `json:"room"`
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	IsPrivate   bool   `json:"is_private"`
-	Secret      string `json:"secret"`
-	Pin         string `json:"pin"`
-	Post        string `json:"post"`
+	Secret      string `json:"secret,omitempty"`
+	Pin         string `json:"pin,omitempty"`
+	Post        string `json:"post,omitempty"`
 }
 
 func (r *TextroomRoom) AsMap() map[string]interface{} {
@@ -177,11 +177,11 @@ type TextroomRoomFromListResponse struct {
 
 type TextroomRoomForEdit struct {
 	Room        int    `json:"room"`
-	Description string `json:"new_description"`
+	Description string `json:"new_description,omitempty"`
 	IsPrivate   bool   `json:"new_is_private"`
-	Secret      string `json:"new_secret"`
-	Pin         string `json:"new_pin"`
-	Post        string `json:"new_post"`
+	Secret      string `json:"new_secret,omitempty"`
+	Pin         string `json:"new_pin,omitempty"`
+	Post        string `json:"new_post,omitempty"`
 }
 
 func (r *TextroomRoomForEdit) AsMap() map[string]interface{} {

@@ -431,7 +431,7 @@ func TestDefaultAdminAPI_HandleInfo(t *testing.T) {
 	noError(t, err)
 	defer handle.Detach()
 
-	resp, err := api.HandleInfo(session.ID+1, handle.ID+1)
+	resp, err := api.HandleInfo(session.ID, handle.ID)
 	noError(t, err)
 	if resp == nil {
 		t.Error("resp is nil")
