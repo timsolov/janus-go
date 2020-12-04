@@ -2,11 +2,17 @@ version: "3.7"
 
 services:
   gateway:
-    image: canyan/janus-gateway:latest
-    command: ["/usr/local/bin/janus", "-F", "/usr/local/etc/janus"]
+    image: 'ladamalina/janus-gateway:latest'
     ports:
-      - "8088:8088"
-      - "8188:8188"
-      - "7088:7088"
+      - "8088:8088" # http  api /janus
+      # - "8089:8089" # https api /janus
+      - "8188:8188" # ws
+      # - "8189:8189" # wss
+      - "7088:7088" # http  admin
+      - "7089:7089" # https admin
+      - "10000-10200:10000-10200/udp" # WebRTC
     volumes:
-      - "./etc:/usr/local/etc/janus"
+      - "./config:/var/janus/janus/etc/janus"
+      - "./data:/var/janus/janus/data"
+    environment:
+      - DOCKER_IP={PUBLIC_IP}
