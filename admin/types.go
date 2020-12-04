@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/edoshor/janus-go"
-	"github.com/edoshor/janus-go/plugins"
+	"github.com/timsolov/janus-go"
+	"github.com/timsolov/janus-go/plugins"
 )
 
 type APIRequest interface {

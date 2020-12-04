@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/edoshor/janus-go"
-	"github.com/edoshor/janus-go/plugins"
+	"github.com/timsolov/janus-go"
+	"github.com/timsolov/janus-go/plugins"
 )
 
 func TestAdminTokens(t *testing.T) {

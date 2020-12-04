@@ -1,7 +1,7 @@
 package plugins
 
 import (
-	"github.com/edoshor/janus-go"
+	"github.com/timsolov/janus-go"
 )
 
 type TextroomRequest struct {
