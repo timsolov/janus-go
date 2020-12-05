@@ -136,7 +136,7 @@ func TestDefaultAdminAPI_MessagePlugin_Videoroom(t *testing.T) {
 	defer api.RemoveToken("test-token")
 	client.Token = "test-token"
 
-	requestFactory := plugins.MakeVideoroomRequestFactory("supersecret")
+	requestFactory := plugins.NewVideoroomRequestFactory("supersecret")
 
 	room := &plugins.VideoroomRoom{
 		Room:          88,
@@ -187,7 +187,7 @@ func TestDefaultAdminAPI_MessagePlugin_Videoroom(t *testing.T) {
 		}
 	}
 
-	editRoom := &plugins.VideoroomRoomForEdit{
+	editRoom := &plugins.VideoroomRoomEdit{
 		Room:         room.Room,
 		Description:  fmt.Sprintf("%s edit", room.Description),
 		Secret:       fmt.Sprintf("%s edit", room.Secret),
@@ -245,7 +245,7 @@ func TestDefaultAdminAPI_MessagePlugin_Videoroom(t *testing.T) {
 	}
 }
 
-func findVideoroom(t *testing.T, api AdminAPI, requestFactory *plugins.VideoroomRequestFactory, room int) *plugins.VideoroomRoomFromListResponse {
+func findVideoroom(t *testing.T, api AdminAPI, requestFactory *plugins.VideoroomRequestFactory, room int) *plugins.VideoroomRoomListEntry {
 	resp, err := api.MessagePlugin(requestFactory.ListRequest())
 	noError(t, err)
 

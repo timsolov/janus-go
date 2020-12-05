@@ -4,10 +4,12 @@ import (
 	"github.com/timsolov/janus-go"
 )
 
+// VideoroomResponse base response
 type VideoroomResponse struct {
 	Videoroom string `json:"videoroom"`
 }
 
+// VideoroomErrorResponse error response
 type VideoroomErrorResponse struct {
 	VideoroomResponse
 	PluginError
@@ -17,53 +19,13 @@ func (err *VideoroomErrorResponse) Error() string {
 	return err.PluginError.Error()
 }
 
-type VideoroomRequestFactory struct {
-	PluginRequestFactory
-}
-
-func MakeVideoroomRequestFactory(adminKey string) *VideoroomRequestFactory {
-	return &VideoroomRequestFactory{
-		PluginRequestFactory: *NewPluginRequestFactory("janus.plugin.videoroom", adminKey),
-	}
-}
-
-func (f *VideoroomRequestFactory) ListRequest() *BasePluginRequest {
-	request := f.make("list")
-	return &request
-}
-
-func (f *VideoroomRequestFactory) CreateRequest(room *VideoroomRoom, permanent bool, allowed []string) *VideoroomCreateRequest {
-	return &VideoroomCreateRequest{
-		BasePluginRequest: f.make("create"),
-		Room:              room,
-		Permanent:         permanent,
-		Allowed:           allowed,
-	}
-}
-
-func (f *VideoroomRequestFactory) EditRequest(room *VideoroomRoomForEdit, permanent bool, secret string) *VideoroomEditRequest {
-	return &VideoroomEditRequest{
-		BasePluginRequest: f.make("edit"),
-		Room:              room,
-		Permanent:         permanent,
-		Secret:            secret,
-	}
-}
-
-func (f *VideoroomRequestFactory) DestroyRequest(roomID int, permanent bool, secret string) *VideoroomDestroyRequest {
-	return &VideoroomDestroyRequest{
-		BasePluginRequest: f.make("destroy"),
-		RoomID:            roomID,
-		Permanent:         permanent,
-		Secret:            secret,
-	}
-}
-
+// VideoroomListResponse list of rooms
 type VideoroomListResponse struct {
 	VideoroomResponse
-	Rooms []*VideoroomRoomFromListResponse `json:"list"`
+	Rooms []*VideoroomRoomListEntry `json:"list"`
 }
 
+// VideoroomCreateRequest create room
 type VideoroomCreateRequest struct {
 	BasePluginRequest
 	Room      *VideoroomRoom
@@ -71,6 +33,7 @@ type VideoroomCreateRequest struct {
 	Allowed   []string
 }
 
+// Payload ...
 func (r *VideoroomCreateRequest) Payload() map[string]interface{} {
 	payload := r.BasePluginRequest.Payload()
 	payload["permanent"] = r.Permanent
@@ -81,19 +44,22 @@ func (r *VideoroomCreateRequest) Payload() map[string]interface{} {
 	return payload
 }
 
+// VideoroomCreateResponse success response on create room
 type VideoroomCreateResponse struct {
 	VideoroomResponse
 	RoomID    int  `json:"room"`
 	Permanent bool `json:"permanent"`
 }
 
+// VideoroomEditRequest edit room
 type VideoroomEditRequest struct {
 	BasePluginRequest
-	Room      *VideoroomRoomForEdit
+	Room      *VideoroomRoomEdit
 	Secret    string
 	Permanent bool
 }
 
+// Payload ...
 func (r *VideoroomEditRequest) Payload() map[string]interface{} {
 	payload := r.BasePluginRequest.Payload()
 	payload["permanent"] = r.Permanent
@@ -104,11 +70,13 @@ func (r *VideoroomEditRequest) Payload() map[string]interface{} {
 	return payload
 }
 
+// VideoroomEditResponse success response on edit room
 type VideoroomEditResponse struct {
 	VideoroomResponse
 	RoomID int `json:"room"`
 }
 
+// VideoroomDestroyRequest destroy room
 type VideoroomDestroyRequest struct {
 	BasePluginRequest
 	RoomID    int
@@ -116,6 +84,7 @@ type VideoroomDestroyRequest struct {
 	Permanent bool
 }
 
+// Payload ...
 func (r *VideoroomDestroyRequest) Payload() map[string]interface{} {
 	payload := r.BasePluginRequest.Payload()
 	payload["room"] = r.RoomID
@@ -126,13 +95,15 @@ func (r *VideoroomDestroyRequest) Payload() map[string]interface{} {
 	return payload
 }
 
+// VideoroomDestroyResponse success response on destroy room
 type VideoroomDestroyResponse struct {
 	VideoroomResponse
 	RoomID int `json:"room"`
 }
 
+// VideoroomRoom describes room settings
 type VideoroomRoom struct {
-	Room               int    `json:"room"`
+	Room               int    `json:"room,omitempty"`
 	Description        string `json:"description,omitempty"`
 	IsPrivate          bool   `json:"is_private"`
 	Secret             string `json:"secret,omitempty"`
@@ -161,12 +132,14 @@ type VideoroomRoom struct {
 	NotifyJoining      bool   `json:"notify_joining"`
 }
 
+// AsMap convert struct to map
 func (r *VideoroomRoom) AsMap() map[string]interface{} {
 	m, _ := janus.StructToMap(r)
 	return m
 }
 
-type VideoroomRoomFromListResponse struct {
+// VideoroomRoomListEntry each record from room list
+type VideoroomRoomListEntry struct {
 	VideoroomRoom
 	PinRequired     bool `json:"pin_required"`
 	MaxPublishers   int  `json:"max_publishers"`
@@ -174,7 +147,8 @@ type VideoroomRoomFromListResponse struct {
 	NumParticipants int  `json:"num_participants"`
 }
 
-type VideoroomRoomForEdit struct {
+// VideoroomRoomEdit edit room
+type VideoroomRoomEdit struct {
 	Room         int    `json:"room"`
 	Description  string `json:"new_description,omitempty"`
 	IsPrivate    bool   `json:"new_is_private"`
@@ -187,7 +161,8 @@ type VideoroomRoomForEdit struct {
 	LockRecord   bool   `json:"new_lock_record"`
 }
 
-func (r *VideoroomRoomForEdit) AsMap() map[string]interface{} {
+// AsMap convert struct to map
+func (r *VideoroomRoomEdit) AsMap() map[string]interface{} {
 	m, _ := janus.StructToMap(r)
 	return m
 }

@@ -13,7 +13,7 @@ func TestVideoroomRoom_AsMap(t *testing.T) {
 }
 
 func TestVideoroomRoomForEdit_AsMap(t *testing.T) {
-	r := VideoroomRoomForEdit{}
+	r := VideoroomRoomEdit{}
 	m := r.AsMap()
 	for _, k := range []string{"new_description", "new_secret", "new_pin"} {
 		if _, ok := m[k]; ok {
